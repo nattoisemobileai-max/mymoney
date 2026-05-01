@@ -1,0 +1,15 @@
+{
+  "short_name": "Where$?",
+  "name": "Where is my $? 記帳助手",
+  "icons": [
+    {
+      "src": "https://nattoisemobileai-max.github.io/mymoney/",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#14C784",
+  "background_color": "#ffffff"
+}
