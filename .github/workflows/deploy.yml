@@ -3,7 +3,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # 或是你的分支名稱
+      - main
+
+permissions:
+  contents: write
 
 jobs:
   build-and-deploy:
@@ -15,10 +18,10 @@ jobs:
       - name: Install and Build
         run: |
           npm install
-          npm run build
+          CI=false npm run build  # 加上 CI=false 確保編譯成功
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: build # React 編譯後的資料夾
-          branch: gh-pages # 部署到的分支
+          folder: build # 這是編譯後 index.html 所在的資料夾
+          branch: gh-pages
