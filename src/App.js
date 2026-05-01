@@ -1,149 +1,170 @@
-import React, { useState } from 'react';
-import { Mic, Camera, Download, Wallet, Settings, Home, Menu, ChevronDown, Check, Plus, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mic, Camera, Download, Wallet, Settings, Home, Menu, ChevronDown, Check, Plus, X, Trash2 } from 'lucide-react';
 
 const App = () => {
-  // --- 狀態管理 ---
+  // --- 1. 狀態管理與 LocalStorage 讀取 ---
   const [activeTab, setActiveTab] = useState('home');
-  const [themeColor, setThemeColor] = useState('bg-emerald-500'); 
+  const [themeColor, setThemeColor] = useState('bg-emerald-500');
   const [language, setLanguage] = useState('zh-Hant');
-  const [showInputPage, setShowInputPage] = useState(false); // 控制手動輸入頁面
+  const [showInputPage, setShowInputPage] = useState(false);
 
-  // 1. 多語言字典
-  const i18n = {
-    'zh-Hant': { home: '我的帳本', wallet: '資金帳戶', fixed: '固定開支', settings: '系統設定', langName: '繁體中文', income: '期間收入', expense: '期間支出', asset: '帳本資產' },
-    'English': { home: 'My Ledger', wallet: 'Accounts', fixed: 'Fixed Bills', settings: 'Settings', langName: 'English', income: 'Income', expense: 'Expenses', asset: 'Assets' },
-    'Spanish': { home: 'Mi Libro', wallet: 'Cuentas', fixed: 'Gastos Fijos', settings: 'Ajustes', langName: 'Español', income: 'Ingresos', expense: 'Gastos', asset: 'Activos' },
-    '日文': { home: '私の家計簿', wallet: '資金口座', fixed: '固定費', settings: '設定', langName: '日本語', income: '収入', expense: '支出', asset: '資産' }
+  // 帳目列表 (從 LocalStorage 讀取，若無則為空陣列)
+  const [transactions, setTransactions] = useState(() => {
+    const saved = localStorage.getItem('my_ledger_data');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // 當 transactions 改變時，自動存入 LocalStorage
+  useEffect(() => {
+    localStorage.setItem('my_ledger_data', JSON.stringify(transactions));
+  }, [transactions]);
+
+  // --- 2. 計算邏輯 ---
+  const totalExpense = transactions.reduce((acc, cur) => acc + Number(cur.amount), 0);
+  
+  const categoryTotals = {
+    '交通': 0, '飲食': 0, '教育': 0, '娛樂': 0, '其他': 0
+  };
+  transactions.forEach(t => {
+    if (categoryTotals[t.category] !== undefined) {
+      categoryTotals[t.category] += Number(t.amount);
+    }
+  });
+
+  // --- 3. 新增帳目功能 ---
+  const [formData, setFormData] = useState({ amount: '', note: '', category: '飲食' });
+
+  const handleSave = () => {
+    if (!formData.amount || formData.amount <= 0) return alert("請輸入有效金額");
+    const newEntry = {
+      id: Date.now(),
+      ...formData,
+      date: new Date().toLocaleDateString()
+    };
+    setTransactions([newEntry, ...transactions]);
+    setFormData({ amount: '', note: '', category: '飲食' });
+    setShowInputPage(false);
   };
 
-  const t = i18n[language];
+  const clearData = () => {
+    if (window.confirm("確定要刪除所有紀錄並重設為 0 嗎？")) {
+      setTransactions([]);
+    }
+  };
 
-  // --- 子組件：手動輸入頁面 (Input Page) ---
+  // --- UI 組件 ---
   const ManualInputPage = () => (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col animate-in slide-in-from-bottom duration-300">
+    <div className="fixed inset-0 bg-white z-50 flex flex-col animate-in slide-in-from-bottom">
       <div className={`${themeColor} p-4 text-white flex justify-between items-center`}>
         <button onClick={() => setShowInputPage(false)}><X size={24} /></button>
-        <span className="font-bold text-lg">新增帳目</span>
-        <button className="bg-white text-emerald-600 px-4 py-1 rounded-full text-sm font-bold">儲存</button>
+        <span className="font-bold">新增手動帳目</span>
+        <button onClick={handleSave} className="bg-white text-emerald-600 px-4 py-1 rounded-full font-bold">儲存</button>
       </div>
       <div className="p-6 space-y-6">
         <div>
-          <label className="block text-sm text-gray-500 mb-2">金額 (HKD)</label>
-          <input type="number" placeholder="0.00" className="w-full text-4xl font-bold border-b-2 border-gray-100 focus:border-emerald-500 outline-none pb-2" />
+          <label className="text-xs text-gray-400">金額 (HKD)</label>
+          <input 
+            type="number" 
+            value={formData.amount}
+            onChange={(e) => setFormData({...formData, amount: e.target.value})}
+            placeholder="0.00" 
+            className="w-full text-4xl font-bold border-b-2 outline-none focus:border-emerald-500 py-2" 
+          />
         </div>
         <div>
-          <label className="block text-sm text-gray-500 mb-2">備註描述</label>
-          <input type="text" placeholder="買了什麼？" className="w-full border-b border-gray-100 focus:border-emerald-500 outline-none py-2" />
+          <label className="text-xs text-gray-400">備註</label>
+          <input 
+            type="text" 
+            value={formData.note}
+            onChange={(e) => setFormData({...formData, note: e.target.value})}
+            placeholder="例如: 午餐、巴士..." 
+            className="w-full border-b outline-none py-2" 
+          />
         </div>
         <div>
-          <label className="block text-sm text-gray-500 mb-2">分類</label>
-          <select className="w-full border rounded-lg p-3 bg-gray-50 outline-none">
-            <option>交通</option><option>飲食</option><option>教育</option><option>娛樂</option><option>其他</option>
+          <label className="text-xs text-gray-400">分類</label>
+          <select 
+            value={formData.category}
+            onChange={(e) => setFormData({...formData, category: e.target.value})}
+            className="w-full p-3 bg-gray-50 rounded-lg mt-1 outline-none"
+          >
+            {Object.keys(categoryTotals).map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
       </div>
     </div>
   );
 
-  // --- 子組件：資金帳戶 (Wallet) ---
-  const WalletView = () => (
-    <div className="p-4 space-y-4">
-      <h2 className="font-bold text-gray-800 mb-4">{t.wallet}</h2>
-      {['銀行提取現金', '八達通', 'Alipay HK', 'PayMe'].map(item => (
-        <div key={item} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-          <span className="font-medium">{item}</span>
-          <span className="text-emerald-600 font-bold">HKD $1,000.00</span>
-        </div>
-      ))}
-    </div>
-  );
-
-  // --- 子組件：固定開支 (Fixed Expenses) ---
-  const FixedExpenseView = () => (
-    <div className="p-4 space-y-4">
-      <h2 className="font-bold text-gray-800 mb-4">{t.fixed}</h2>
-      {[
-        { n: '補習', a: '2000' }, { n: '交通(返工日子)', a: '800' }, 
-        { n: '手提電話費', a: '188' }, { n: '家居寬頻', a: '250' }
-      ].map(item => (
-        <div key={item.n} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between">
-          <span className="text-gray-700">{item.n}</span>
-          <span className="text-red-500 font-bold">HKD -{item.a}</span>
-        </div>
-      ))}
-    </div>
-  );
-
-  // --- 子組件：系統設置 ---
-  const SettingView = () => (
-    <div className="p-4 space-y-6">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <div className="font-bold mb-4 text-gray-800">語言設定 / Language</div>
-        <div className="grid grid-cols-2 gap-2">
-          {Object.keys(i18n).map(lang => (
-            <button key={lang} onClick={() => setLanguage(lang)} 
-              className={`p-2 rounded-lg border transition-all text-sm ${language === lang ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-gray-50 border-gray-100'}`}>
-              {lang}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* 原有的顏色切換保持不變 */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <div className="font-bold mb-4 text-gray-800">主題顏色</div>
-        <div className="flex space-x-4">
-          {['bg-emerald-500', 'bg-blue-500', 'bg-slate-800'].map(c => (
-            <button key={c} onClick={() => setThemeColor(c)} className={`w-10 h-10 rounded-full ${c} border-4 ${themeColor === c ? 'border-gray-300' : 'border-transparent'}`} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-slate-50 text-gray-900 pb-24 transition-all">
+    <div className="min-h-screen bg-slate-50 text-gray-900 pb-24">
       {showInputPage && <ManualInputPage />}
       
-      {/* 頂部 */}
+      {/* 頂部導航 */}
       <div className={`${themeColor} text-white p-4 sticky top-0 z-10 shadow-md flex justify-between items-center`}>
-        <div className="flex items-center space-x-1 bg-white bg-opacity-20 px-3 py-1 rounded-full"><Home size={16} /> <span className="text-sm">{t.home}</span></div>
-        <h1 className="font-bold">{t.home}</h1>
+        <div className="flex items-center space-x-1 bg-white/20 px-3 py-1 rounded-full"><Home size={16} /> <span className="text-sm">我的帳本</span></div>
+        <h1 className="font-bold">我的帳本</h1>
         <Menu size={24} />
       </div>
 
-      <main>
+      <main className="p-4 space-y-4">
         {activeTab === 'home' && (
-          <div className="p-4 space-y-4">
+          <>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-red-500 p-4 rounded-2xl text-white"><div>{t.expense}</div><div className="text-xl font-bold">HKD $13,719</div></div>
-              <div className={`${themeColor} p-4 rounded-2xl text-white`}><div>{t.income}</div><div className="text-xl font-bold">HKD $0</div></div>
+              <div className="bg-red-500 p-4 rounded-2xl text-white shadow-sm">
+                <div className="text-xs opacity-80">期間支出</div>
+                <div className="text-xl font-bold">HKD ${totalExpense.toLocaleString()}</div>
+              </div>
+              <div className={`${themeColor} p-4 rounded-2xl text-white shadow-sm`}>
+                <div className="text-xs opacity-80">期間收入</div>
+                <div className="text-xl font-bold">HKD $0</div>
+              </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-               <div className="flex items-center mb-4"><div className={`w-1 h-5 ${themeColor} rounded-full mr-2`}></div><h3 className="font-bold">分類統計</h3></div>
-               {['交通', '飲食', '教育', '娛樂', '其他'].map(cat => (
-                 <div key={cat} className="flex justify-between py-2 border-b border-gray-50 text-sm"><span>{cat}</span><span className="text-red-500">-HKD 0</span></div>
-               ))}
+
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+               <h3 className="font-bold mb-4 border-l-4 border-emerald-500 pl-2">分類統計</h3>
+               <div className="space-y-4">
+                 {Object.entries(categoryTotals).map(([name, val]) => (
+                   <div key={name}>
+                     <div className="flex justify-between text-sm mb-1">
+                       <span>{name}</span>
+                       <span className="font-bold text-red-500">HKD -{val.toLocaleString()}</span>
+                     </div>
+                     <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                       <div 
+                        className={`${themeColor} h-full transition-all duration-500`} 
+                        style={{ width: `${totalExpense > 0 ? (val/totalExpense)*100 : 0}%` }}
+                       ></div>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-4">
+            <div className="bg-white p-4 rounded-xl border border-red-100">
+              <h4 className="text-red-500 font-bold mb-2">危險區域</h4>
+              <button onClick={clearData} className="flex items-center space-x-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg w-full justify-center">
+                <Trash2 size={18} /> <span>清除所有記帳數據</span>
+              </button>
             </div>
           </div>
         )}
-        {activeTab === 'wallet' && <WalletView />}
-        {activeTab === 'tool' && <FixedExpenseView />}
-        {activeTab === 'settings' && <SettingView />}
       </main>
 
       {/* 底部導航 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around items-center py-2 z-20">
-        <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center w-1/5 ${activeTab === 'wallet' ? 'text-emerald-500' : 'text-gray-400'}`}><Wallet size={20}/><span className="text-[10px]">{t.wallet}</span></button>
-        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center w-1/5 ${activeTab === 'home' ? 'text-emerald-500' : 'text-gray-400'}`}><Download size={20}/><span className="text-[10px]">{t.home}</span></button>
+        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center w-1/4 ${activeTab === 'home' ? 'text-emerald-500' : 'text-gray-400'}`}><Download size={20}/><span className="text-[10px]">我的帳本</span></button>
         
         <div className="relative -top-5">
-          <button onClick={() => setShowInputPage(true)} className={`${themeColor} w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-all`}>
+          <button onClick={() => setShowInputPage(true)} className={`${themeColor} w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg`}>
             <Plus size={32} />
           </button>
         </div>
 
-        <button onClick={() => setActiveTab('tool')} className={`flex flex-col items-center w-1/5 ${activeTab === 'tool' ? 'text-emerald-500' : 'text-gray-400'}`}><Wand2 size={20}/><span className="text-[10px]">{t.fixed}</span></button>
-        <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center w-1/5 ${activeTab === 'settings' ? 'text-emerald-500' : 'text-gray-400'}`}><Settings size={20}/><span className="text-[10px]">{t.settings}</span></button>
+        <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center w-1/4 ${activeTab === 'settings' ? 'text-emerald-500' : 'text-gray-400'}`}><Settings size={20}/><span className="text-[10px]">系統設定</span></button>
       </nav>
     </div>
   );
