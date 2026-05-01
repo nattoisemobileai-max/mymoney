@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mic, Camera, Download, Wallet, Wand2, Settings, Home, Menu, Plus } from 'lucide-react';
+import { Mic, Camera, Download, Wallet, Wand2, Settings, Home, Menu } from 'lucide-react';
 
 const COLORS = {
   header: '#14C784',
