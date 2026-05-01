@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/mymoney/static/js/main.cbad2440.js",
+    "index.html": "/mymoney/index.html",
+    "main.cbad2440.js.map": "/mymoney/static/js/main.cbad2440.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.cbad2440.js"
+  ]
+}
