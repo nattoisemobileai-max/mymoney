@@ -850,4 +850,49 @@ const App = () => {
             setShowSettingsPage(false);
             setShowDetailPage(null);
           }} 
-          className={`flex flex-col items-center w-1/3 ${activeTab === 'home' && !show
+          className={`flex flex-col items-center w-1/3 ${activeTab === 'home' && !showInputPage ? `text-${currentTheme.text} font-black` : 'text-gray-300'}`}
+        >
+          <Download size={28}/>
+          <span className="text-xs mt-1 uppercase font-bold">{t.transactions}</span>
+        </button>
+        <div className="relative -top-12 w-1/3 flex justify-center">
+          <button 
+            onClick={() => { 
+              setInputType('expense'); 
+              setShowInputPage(true);
+              setShowCalculator(false);
+              setFormData({
+                ...formData,
+                amount: '',
+                category: settings.expenseCategories[0],
+                paymentMethod: ''
+              });
+            }} 
+            className={`bg-[#B08D57] w-20 h-20 rounded-full flex items-center justify-center text-white shadow-2xl border-[8px] border-[#F8F9FB] active:scale-90 transition-all`}
+          >
+            <Plus size={40} />
+          </button>
+        </div>
+        <button 
+          onClick={() => { 
+            setInputType('income'); 
+            setShowInputPage(true);
+            setShowCalculator(false);
+            setFormData({
+              ...formData,
+              amount: '',
+              category: settings.incomeCategories[0],
+              paymentMethod: settings.incomeCategories[0]
+            });
+          }} 
+          className={`flex flex-col items-center w-1/3 ${showInputPage && inputType === 'income' ? `text-${currentTheme.text} font-black` : 'text-gray-300'}`}
+        >
+          <Wallet size={28}/>
+          <span className="text-xs mt-1 uppercase font-bold">{t.addIncome}</span>
+        </button>
+      </nav>
+    </div>
+  );
+};
+
+export default App;
