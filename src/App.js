@@ -1,33 +1,223 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  Download, Wallet, Plus, X, Menu, 
-  Trash2, TrendingUp, Check, MessageSquare, Delete
+  Download, Wallet, Plus, X, Menu, ChevronLeft, ChevronRight, 
+  Trash2, TrendingUp, Check, MessageSquare, Delete, Settings,
+  CreditCard, DollarSign, Smartphone, Gift, Save, RefreshCw,
+  Eye, ArrowUpCircle, ArrowDownCircle
 } from 'lucide-react';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [showInputPage, setShowInputPage] = useState(false);
+  const [showSettingsPage, setShowSettingsPage] = useState(false);
+  const [showDetailPage, setShowDetailPage] = useState(null); // 'expense' or 'income'
   const [inputType, setInputType] = useState('expense');
+  const [showCalculator, setShowCalculator] = useState(false);
   
   // 記帳資料
   const [records, setRecords] = useState([]);
 
   const [formData, setFormData] = useState({
-    amount: '0',
+    amount: '',
     category: '購物',
     nature: 'essential', 
     note: '',
-    date: '2026-05-04'
+    date: new Date().toISOString().slice(0,10),
+    paymentMethod: ''
   });
 
-  // 分類設定
-  const [currentSettings] = useState({
-    appName: '隨手記 | Spending Ace',
-    expCategories: ['購物', '交通', '餐飲', '補習', '水電費', '旅遊', '醫療', '其他'],
-    incCategories: ['薪金', '獎金', '投資收入', '其他']
+  // 設定資料
+  const [settings, setSettings] = useState({
+    language: 'zh-TW',
+    theme: 'green',
+    expenseCategories: ['交通', '飲食', '購物', '補習', '其他'],
+    incomeCategories: ['現金', '信用卡', 'AlipayHK', 'PayMe']
   });
 
-  // 計算最近7天的日期 (從今天往回推)
+  const [tempSettings, setTempSettings] = useState({ ...settings });
+
+  // 語言文字對應
+  const texts = {
+    'zh-TW': {
+      appName: '隨手記 | Spending Ace',
+      totalExpense: '總支出',
+      totalIncome: '總收入',
+      dailyTrend: '每日趨勢',
+      expense: '支出',
+      income: '收入',
+      transactions: '交易紀錄',
+      noData: '暫無數據，請點擊下方 + 開始記帳',
+      addExpense: '新增支出',
+      addIncome: '新增收入',
+      amount: '金額',
+      amountPlaceholder: '請輸入金額',
+      category: '分類',
+      note: '備註',
+      notePlaceholder: '輸入備註...',
+      necessary: '必要',
+      want: '想要',
+      save: '儲存',
+      cancel: '取消',
+      settings: '設定',
+      language: '語言',
+      theme: '主題',
+      expenseManagement: '支出分類管理',
+      incomeManagement: '收入分類管理',
+      blue: '藍色',
+      green: '綠色',
+      gray: '灰色',
+      black: '黑色',
+      allExpenses: '全部支出',
+      allIncomes: '全部收入',
+      paymentMethod: '付款方式'
+    },
+    'en': {
+      appName: 'Spending Ace',
+      totalExpense: 'Total Expense',
+      totalIncome: 'Total Income',
+      dailyTrend: 'Daily Trend',
+      expense: 'Expense',
+      income: 'Income',
+      transactions: 'Transactions',
+      noData: 'No data yet, tap + to start tracking',
+      addExpense: 'Add Expense',
+      addIncome: 'Add Income',
+      amount: 'Amount',
+      amountPlaceholder: 'Enter amount',
+      category: 'Category',
+      note: 'Note',
+      notePlaceholder: 'Enter note...',
+      necessary: 'Essential',
+      want: 'Desire',
+      save: 'Save',
+      cancel: 'Cancel',
+      settings: 'Settings',
+      language: 'Language',
+      theme: 'Theme',
+      expenseManagement: 'Expense Categories',
+      incomeManagement: 'Income Categories',
+      blue: 'Blue',
+      green: 'Green',
+      gray: 'Gray',
+      black: 'Black',
+      allExpenses: 'All Expenses',
+      allIncomes: 'All Incomes',
+      paymentMethod: 'Payment Method'
+    },
+    'ja': {
+      appName: 'スケッチ | Spending Ace',
+      totalExpense: '総支出',
+      totalIncome: '総収入',
+      dailyTrend: '日別トレンド',
+      expense: '支出',
+      income: '収入',
+      transactions: '取引履歴',
+      noData: 'データがありません。+ をタップして記帳を開始',
+      addExpense: '支出を追加',
+      addIncome: '収入を追加',
+      amount: '金額',
+      amountPlaceholder: '金額を入力',
+      category: 'カテゴリ',
+      note: 'メモ',
+      notePlaceholder: 'メモを入力...',
+      necessary: '必要',
+      want: '欲しい',
+      save: '保存',
+      cancel: 'キャンセル',
+      settings: '設定',
+      language: '言語',
+      theme: 'テーマ',
+      expenseManagement: '支出カテゴリ',
+      incomeManagement: '収入カテゴリ',
+      blue: 'ブルー',
+      green: 'グリーン',
+      gray: 'グレー',
+      black: 'ブラック',
+      allExpenses: '全ての支出',
+      allIncomes: '全ての収入',
+      paymentMethod: '支払い方法'
+    },
+    'de': {
+      appName: 'Spending Ace',
+      totalExpense: 'Gesamtausgaben',
+      totalIncome: 'Gesamteinnahmen',
+      dailyTrend: 'Täglicher Trend',
+      expense: 'Ausgabe',
+      income: 'Einnahme',
+      transactions: 'Transaktionen',
+      noData: 'Keine Daten, tippen Sie auf + um zu beginnen',
+      addExpense: 'Ausgabe hinzufügen',
+      addIncome: 'Einnahme hinzufügen',
+      amount: 'Betrag',
+      amountPlaceholder: 'Betrag eingeben',
+      category: 'Kategorie',
+      note: 'Notiz',
+      notePlaceholder: 'Notiz eingeben...',
+      necessary: 'Notwendig',
+      want: 'Wunsch',
+      save: 'Speichern',
+      cancel: 'Abbrechen',
+      settings: 'Einstellungen',
+      language: 'Sprache',
+      theme: 'Thema',
+      expenseManagement: 'Ausgabenkategorien',
+      incomeManagement: 'Einnahmenkategorien',
+      blue: 'Blau',
+      green: 'Grün',
+      gray: 'Grau',
+      black: 'Schwarz',
+      allExpenses: 'Alle Ausgaben',
+      allIncomes: 'Alle Einnahmen',
+      paymentMethod: 'Zahlungsmethode'
+    },
+    'es': {
+      appName: 'Spending Ace',
+      totalExpense: 'Gasto Total',
+      totalIncome: 'Ingreso Total',
+      dailyTrend: 'Tendencia Diaria',
+      expense: 'Gasto',
+      income: 'Ingreso',
+      transactions: 'Transacciones',
+      noData: 'Sin datos, toque + para comenzar',
+      addExpense: 'Agregar Gasto',
+      addIncome: 'Agregar Ingreso',
+      amount: 'Monto',
+      amountPlaceholder: 'Ingrese monto',
+      category: 'Categoría',
+      note: 'Nota',
+      notePlaceholder: 'Ingrese nota...',
+      necessary: 'Necesario',
+      want: 'Deseo',
+      save: 'Guardar',
+      cancel: 'Cancelar',
+      settings: 'Configuración',
+      language: 'Idioma',
+      theme: 'Tema',
+      expenseManagement: 'Categorías de Gastos',
+      incomeManagement: 'Categorías de Ingresos',
+      blue: 'Azul',
+      green: 'Verde',
+      gray: 'Gris',
+      black: 'Negro',
+      allExpenses: 'Todos los Gastos',
+      allIncomes: 'Todos los Ingresos',
+      paymentMethod: 'Método de Pago'
+    }
+  };
+
+  const t = texts[settings.language];
+
+  // 主題顏色
+  const themes = {
+    blue: { primary: 'blue-500', secondary: 'blue-600', bg: 'blue-50' },
+    green: { primary: 'emerald-500', secondary: 'emerald-600', bg: 'emerald-50' },
+    gray: { primary: 'gray-500', secondary: 'gray-600', bg: 'gray-50' },
+    black: { primary: 'gray-900', secondary: 'gray-900', bg: 'gray-100' }
+  };
+
+  const currentTheme = themes[settings.theme];
+
+  // 計算最近7天的日期
   const getLast7Days = () => {
     const days = [];
     for (let i = 6; i >= 0; i--) {
@@ -39,19 +229,17 @@ const App = () => {
     return days;
   };
 
-  // 動態圖表數據：依最近7天聚合支出/收入
+  // 動態圖表數據
   const chartData = useMemo(() => {
     const last7Days = getLast7Days();
     const dailyExpense = {};
     const dailyIncome = {};
     
-    // 初始化
     last7Days.forEach(date => {
       dailyExpense[date] = 0;
       dailyIncome[date] = 0;
     });
 
-    // 加總紀錄
     records.forEach(record => {
       const date = record.date;
       if (dailyExpense[date] !== undefined) {
@@ -63,14 +251,12 @@ const App = () => {
       }
     });
 
-    // 轉為陣列並找出最大值（用於比例高度）
     const expenseValues = Object.values(dailyExpense);
     const incomeValues = Object.values(dailyIncome);
     const maxExpense = Math.max(...expenseValues, 0);
     const maxIncome = Math.max(...incomeValues, 0);
-    const globalMax = Math.max(maxExpense, maxIncome, 1); // 避免除以0
+    const globalMax = Math.max(maxExpense, maxIncome, 1);
 
-    // 計算高度百分比（最高柱為 100%）
     const heights = last7Days.map(date => ({
       expense: (dailyExpense[date] / globalMax) * 100,
       income: (dailyIncome[date] / globalMax) * 100
@@ -79,70 +265,309 @@ const App = () => {
     return { dates: last7Days, heights };
   }, [records]);
 
+  const handleSaveSettings = () => {
+    setSettings({ ...tempSettings });
+    setShowSettingsPage(false);
+  };
+
+  const handleCancelSettings = () => {
+    setTempSettings({ ...settings });
+    setShowSettingsPage(false);
+  };
+
   const handleCalcPress = (val) => {
     setFormData(prev => {
       let newAmount = prev.amount;
-      if (val === 'C') return { ...prev, amount: '0' };
-      if (val === 'del') return { ...prev, amount: prev.amount.length > 1 ? prev.amount.slice(0, -1) : '0' };
-      if (prev.amount === '0' && val !== '.') {
-        newAmount = val.toString();
+      if (val === 'C') return { ...prev, amount: '' };
+      if (val === 'del') return { ...prev, amount: prev.amount.slice(0, -1) };
+      if (val === '.') {
+        if (newAmount.includes('.')) return prev;
+        newAmount = newAmount + '.';
       } else {
-        newAmount = prev.amount + val;
+        newAmount = newAmount + val;
       }
       return { ...prev, amount: newAmount };
     });
   };
 
   const handleSave = () => {
-    if (formData.amount === '0') return;
-    const newRecord = { ...formData, type: inputType, amount: Number(formData.amount), id: Date.now() };
+    if (!formData.amount || formData.amount === '0') return;
+    
+    const amountNum = parseFloat(formData.amount);
+    const newRecord = { 
+      ...formData, 
+      type: inputType, 
+      amount: amountNum, 
+      id: Date.now(),
+      paymentMethod: formData.paymentMethod || (inputType === 'income' ? settings.incomeCategories[0] : '')
+    };
     setRecords([newRecord, ...records]);
     setShowInputPage(false);
-    setFormData({ amount: '0', category: '購物', nature: 'essential', note: '', date: '2026-05-04' });
+    setShowCalculator(false);
+    setFormData({ 
+      amount: '', 
+      category: inputType === 'expense' ? settings.expenseCategories[0] : settings.incomeCategories[0],
+      nature: 'essential', 
+      note: '', 
+      date: new Date().toISOString().slice(0,10),
+      paymentMethod: ''
+    });
   };
 
   const handleDeleteRecord = (id) => {
     setRecords(records.filter(record => record.id !== id));
   };
 
-  // 輔助：日期顯示為 MM/DD
   const formatShortDate = (dateStr) => {
     const [year, month, day] = dateStr.split('-');
     return `${month}/${day}`;
   };
 
+  // 取得總支出和總收入
+  const totalExpense = records.filter(r => r.type === 'expense').reduce((a, b) => a + b.amount, 0);
+  const totalIncome = records.filter(r => r.type === 'income').reduce((a, b) => a + b.amount, 0);
+
+  // 篩選支出或收入紀錄
+  const filteredRecords = showDetailPage === 'expense' 
+    ? records.filter(r => r.type === 'expense')
+    : showDetailPage === 'income'
+    ? records.filter(r => r.type === 'income')
+    : [];
+
   return (
-    <div className="min-h-screen bg-[#F8F9FB] text-gray-900 pb-32 font-sans select-none overflow-x-hidden">
+    <div className={`min-h-screen bg-[#F8F9FB] text-gray-900 pb-32 font-sans select-none overflow-x-hidden ${settings.theme === 'black' ? 'bg-gray-900 text-white' : ''}`}>
       
       {/* 頂部 Header */}
-      <div className="bg-emerald-500 text-white p-5 sticky top-0 z-50 flex justify-between items-center shadow-md">
+      <div className={`bg-${currentTheme.primary} text-white p-5 sticky top-0 z-50 flex justify-between items-center shadow-md`}>
+        <button onClick={() => setShowSettingsPage(true)} className="p-2">
+          <Settings size={24} />
+        </button>
+        <h1 className="font-bold text-lg">{t.appName}</h1>
         <div className="w-10"></div>
-        <h1 className="font-bold text-lg">{currentSettings.appName}</h1>
-        <div className="w-10 flex justify-end"><Menu size={24} /></div>
       </div>
 
+      {/* 設定頁面 */}
+      {showSettingsPage && (
+        <div className="fixed inset-0 bg-white z-[300] overflow-y-auto">
+          <div className={`bg-${currentTheme.primary} text-white p-5 sticky top-0 flex justify-between items-center`}>
+            <button onClick={handleCancelSettings} className="p-2"><X size={24} /></button>
+            <h2 className="font-bold text-lg">{t.settings}</h2>
+            <div className="w-10"></div>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* 語言設定 */}
+            <div>
+              <label className="block text-sm font-bold mb-3 text-gray-700">{t.language}</label>
+              <div className="grid grid-cols-2 gap-2">
+                {['zh-TW', 'en', 'ja', 'de', 'es'].map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => setTempSettings({...tempSettings, language: lang})}
+                    className={`p-3 rounded-xl text-sm font-bold border-2 transition-all ${
+                      tempSettings.language === lang 
+                        ? `bg-${currentTheme.primary} text-white border-${currentTheme.primary}` 
+                        : 'bg-gray-50 text-gray-600 border-gray-200'
+                    }`}
+                  >
+                    {lang === 'zh-TW' && '繁體中文'}
+                    {lang === 'en' && 'English'}
+                    {lang === 'ja' && '日本語'}
+                    {lang === 'de' && 'Deutsch'}
+                    {lang === 'es' && 'Español'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 主題設定 */}
+            <div>
+              <label className="block text-sm font-bold mb-3 text-gray-700">{t.theme}</label>
+              <div className="grid grid-cols-4 gap-2">
+                {['blue', 'green', 'gray', 'black'].map(theme => (
+                  <button
+                    key={theme}
+                    onClick={() => setTempSettings({...tempSettings, theme: theme})}
+                    className={`p-3 rounded-xl text-xs font-bold border-2 ${
+                      tempSettings.theme === theme 
+                        ? `bg-${theme === 'black' ? 'gray-900' : theme + '-500'} text-white border-${theme === 'black' ? 'gray-900' : theme + '-500'}` 
+                        : 'bg-gray-50 text-gray-600 border-gray-200'
+                    }`}
+                  >
+                    {theme === 'blue' && t.blue}
+                    {theme === 'green' && t.green}
+                    {theme === 'gray' && t.gray}
+                    {theme === 'black' && t.black}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 支出分類管理 */}
+            <div>
+              <label className="block text-sm font-bold mb-3 text-gray-700">{t.expenseManagement}</label>
+              <div className="flex flex-wrap gap-2">
+                {tempSettings.expenseCategories.map((cat, idx) => (
+                  <div key={idx} className="bg-gray-100 px-3 py-2 rounded-full flex items-center gap-2">
+                    <span className="text-sm">{cat}</span>
+                    <button
+                      onClick={() => {
+                        const newCats = tempSettings.expenseCategories.filter((_, i) => i !== idx);
+                        setTempSettings({...tempSettings, expenseCategories: newCats});
+                      }}
+                      className="text-red-500"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  const newCat = prompt('請輸入新分類名稱');
+                  if (newCat) {
+                    setTempSettings({
+                      ...tempSettings,
+                      expenseCategories: [...tempSettings.expenseCategories, newCat]
+                    });
+                  }
+                }}
+                className="mt-2 text-sm text-blue-500 font-bold"
+              >
+                + 新增分類
+              </button>
+            </div>
+
+            {/* 收入分類管理 */}
+            <div>
+              <label className="block text-sm font-bold mb-3 text-gray-700">{t.incomeManagement}</label>
+              <div className="flex flex-wrap gap-2">
+                {tempSettings.incomeCategories.map((cat, idx) => (
+                  <div key={idx} className="bg-gray-100 px-3 py-2 rounded-full flex items-center gap-2">
+                    <span className="text-sm">{cat}</span>
+                    <button
+                      onClick={() => {
+                        const newCats = tempSettings.incomeCategories.filter((_, i) => i !== idx);
+                        setTempSettings({...tempSettings, incomeCategories: newCats});
+                      }}
+                      className="text-red-500"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  const newCat = prompt('請輸入新分類名稱');
+                  if (newCat) {
+                    setTempSettings({
+                      ...tempSettings,
+                      incomeCategories: [...tempSettings.incomeCategories, newCat]
+                    });
+                  }
+                }}
+                className="mt-2 text-sm text-blue-500 font-bold"
+              >
+                + 新增分類
+              </button>
+            </div>
+
+            {/* 按鈕 */}
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={handleSaveSettings}
+                className={`flex-1 bg-${currentTheme.primary} text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2`}
+              >
+                <Save size={20} /> {t.save}
+              </button>
+              <button
+                onClick={handleCancelSettings}
+                className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold flex items-center justify-center gap-2"
+              >
+                <RefreshCw size={20} /> {t.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 詳細頁面 */}
+      {(showDetailPage === 'expense' || showDetailPage === 'income') && (
+        <div className="fixed inset-0 bg-white z-[250] overflow-y-auto">
+          <div className={`bg-${currentTheme.primary} text-white p-5 sticky top-0 flex justify-between items-center`}>
+            <button onClick={() => setShowDetailPage(null)} className="p-2"><ChevronLeft size={28} /></button>
+            <h2 className="font-bold text-lg">
+              {showDetailPage === 'expense' ? t.allExpenses : t.allIncomes}
+            </h2>
+            <div className="w-10"></div>
+          </div>
+
+          <div className="p-4 space-y-3">
+            {filteredRecords.length === 0 ? (
+              <div className="text-center py-20 text-gray-400 font-bold">
+                {t.noData}
+              </div>
+            ) : (
+              filteredRecords.map(record => (
+                <div key={record.id} className="bg-gray-50 p-4 rounded-2xl flex justify-between items-center">
+                  <div>
+                    <p className="font-bold text-gray-800">{record.category}</p>
+                    <p className="text-xs text-gray-500">{record.note || record.date}</p>
+                    {record.paymentMethod && (
+                      <p className="text-xs text-gray-400 mt-1">{record.paymentMethod}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className={`font-black ${
+                      showDetailPage === 'expense' ? 'text-red-500' : 'text-green-500'
+                    }`}>
+                      {showDetailPage === 'expense' ? '-' : '+'} HK${record.amount}
+                    </p>
+                    <button
+                      onClick={() => handleDeleteRecord(record.id)}
+                      className="text-gray-400 hover:text-red-500"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 主頁面內容 */}
-      {!showInputPage && (
+      {!showInputPage && !showSettingsPage && !showDetailPage && (
         <main className="p-4 space-y-6 animate-in fade-in">
           {/* 數據概覽卡片 */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-black text-white p-6 rounded-[2rem] shadow-lg">
-              <p className="text-xs font-bold opacity-60">總支出</p>
-              <p className="text-2xl font-black text-rose-300">HK$ {records.filter(r => r.type==='expense').reduce((a,b)=>a+b.amount,0)}</p>
-            </div>
-            <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-              <p className="text-xs font-bold text-gray-400">總收入</p>
-              <p className="text-2xl font-black text-emerald-500">HK$ {records.filter(r => r.type==='income').reduce((a,b)=>a+b.amount,0)}</p>
-            </div>
+            <button 
+              onClick={() => setShowDetailPage('expense')}
+              className="bg-black text-white p-6 rounded-[2rem] shadow-lg text-left transition-transform active:scale-95"
+            >
+              <p className="text-xs font-bold opacity-60">{t.totalExpense}</p>
+              <p className="text-2xl font-black text-rose-300">HK$ {totalExpense}</p>
+              <ArrowUpCircle size={20} className="mt-2 opacity-60" />
+            </button>
+            <button 
+              onClick={() => setShowDetailPage('income')}
+              className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm text-left transition-transform active:scale-95"
+            >
+              <p className="text-xs font-bold text-gray-400">{t.totalIncome}</p>
+              <p className={`text-2xl font-black text-${currentTheme.primary}`}>HK$ {totalIncome}</p>
+              <ArrowDownCircle size={20} className="mt-2 text-gray-400" />
+            </button>
           </div>
 
           {/* 動態長條圖 */}
           <section className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-50">
             <div className="flex justify-between items-center mb-6 px-2">
-              <h3 className="text-sm font-black text-gray-700">每日趨勢（最近7天）</h3>
+              <h3 className="text-sm font-black text-gray-700">{t.dailyTrend}</h3>
               <div className="flex gap-4 text-[10px] font-bold">
-                <span className="flex items-center gap-1 text-rose-500"><div className="w-2 h-2 rounded-full bg-rose-500"></div> 支出</span>
-                <span className="flex items-center gap-1 text-emerald-500"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> 收入</span>
+                <span className="flex items-center gap-1 text-rose-500"><div className="w-2 h-2 rounded-full bg-rose-500"></div> {t.expense}</span>
+                <span className={`flex items-center gap-1 text-${currentTheme.primary}`}><div className={`w-2 h-2 rounded-full bg-${currentTheme.primary}`}></div> {t.income}</span>
               </div>
             </div>
             <div className="h-40 flex items-end justify-around gap-1 px-2 border-b border-gray-100 pb-2">
@@ -153,7 +578,7 @@ const App = () => {
                     style={{ height: `${chartData.heights[idx].expense}%` }}
                   ></div>
                   <div 
-                    className="w-5 bg-emerald-500 rounded-t-sm transition-all duration-300" 
+                    className={`w-5 bg-${currentTheme.primary} rounded-t-sm transition-all duration-300`} 
                     style={{ height: `${chartData.heights[idx].income}%` }}
                   ></div>
                 </div>
@@ -165,31 +590,34 @@ const App = () => {
               ))}
             </div>
             {records.length === 0 && (
-              <div className="text-center text-xs text-gray-300 mt-4">新增紀錄後，圖表將自動更新</div>
+              <div className="text-center text-xs text-gray-300 mt-4">{t.noData}</div>
             )}
           </section>
 
           {/* 紀錄列表 */}
           <div className="space-y-4">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">交易紀錄</h3>
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">{t.transactions}</h3>
             {records.length === 0 ? (
-              <div className="text-center py-10 text-gray-300 font-bold text-sm">暫無數據，請點擊下方 + 開始記帳</div>
+              <div className="text-center py-10 text-gray-300 font-bold text-sm">{t.noData}</div>
             ) : (
-              records.map(record => (
+              records.slice(0, 5).map(record => (
                 <div key={record.id} className="bg-white p-5 rounded-[1.8rem] flex justify-between items-center border border-gray-100 shadow-sm">
                   <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${record.type === 'expense' ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}><TrendingUp size={18}/></div>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${record.type === 'expense' ? 'bg-rose-50 text-rose-500' : `bg-${currentTheme.bg} text-${currentTheme.primary}`}`}>
+                      <TrendingUp size={18}/>
+                    </div>
                     <div>
                       <p className="font-black text-gray-800 text-sm">{record.category}</p>
                       <p className="text-[10px] text-gray-400 font-bold">{record.note || record.date}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className={`font-black ${record.type === 'expense' ? 'text-rose-600' : 'text-emerald-600'}`}>HK${record.amount}</p>
+                    <p className={`font-black ${record.type === 'expense' ? 'text-rose-600' : `text-${currentTheme.primary}`}`}>
+                      HK${record.amount}
+                    </p>
                     <button 
                       onClick={() => handleDeleteRecord(record.id)}
                       className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                      aria-label="刪除紀錄"
                     >
                       <Trash2 size={18} />
                     </button>
@@ -201,106 +629,231 @@ const App = () => {
         </main>
       )}
 
-      {/* 新增頁面（保持原有設計） */}
+      {/* 新增頁面 */}
       {showInputPage && (
         <div className="fixed inset-0 bg-white z-[200] flex flex-col animate-in slide-in-from-bottom duration-300">
-          <div className={`${inputType === 'expense' ? 'bg-rose-500' : 'bg-blue-500'} p-5 text-white flex justify-between items-center`}>
-            <button onClick={() => setShowInputPage(false)} className="p-2"><X size={30} /></button>
-            <span className="text-lg font-black">{inputType === 'expense' ? '新增支出' : '新增收入'}</span>
+          <div className={`bg-${inputType === 'expense' ? 'rose-500' : currentTheme.primary} p-5 text-white flex justify-between items-center`}>
+            <button onClick={() => {
+              setShowInputPage(false);
+              setShowCalculator(false);
+            }} className="p-2">
+              <X size={30} />
+            </button>
+            <span className="text-lg font-black">
+              {inputType === 'expense' ? t.addExpense : t.addIncome}
+            </span>
             <div className="w-10"></div>
           </div>
 
-          {/* 日曆列 */}
-          <section className="bg-gray-50 py-4 border-b border-gray-100">
-            <div className="flex gap-2 overflow-x-auto no-scrollbar px-6">
-              {[1, 2, 3, 4, 5, 6, 7].map(d => (
-                <button key={d} onClick={() => setFormData({...formData, date: `2026-05-0${d}`})} className={`min-w-[55px] py-3 rounded-xl flex flex-col items-center border-2 ${formData.date.endsWith(d.toString()) ? 'border-black bg-white shadow-sm' : 'border-transparent text-gray-400'}`}>
-                  <span className="text-[8px] font-bold">5月</span>
-                  <span className="text-base font-black">{d}</span>
-                </button>
-              ))}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {/* 金額輸入區域 */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">
+                {t.amount} <span className="text-red-500">*</span>
+              </label>
+              <button
+                onClick={() => setShowCalculator(!showCalculator)}
+                className="w-full bg-gray-50 p-4 rounded-2xl text-left border border-gray-200"
+              >
+                {formData.amount ? (
+                  <span className="text-3xl font-black text-gray-800">HK$ {formData.amount}</span>
+                ) : (
+                  <span className="text-gray-400">{t.amountPlaceholder}</span>
+                )}
+              </button>
             </div>
-          </section>
 
-          <div className="flex-1 p-5 space-y-4 overflow-y-auto no-scrollbar">
-            {/* 金額顯示與必要/想要 */}
-            <div className="space-y-4">
-              <section className="bg-gray-50 p-4 rounded-2xl flex items-center justify-between border border-gray-100">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b-2 border-rose-400">金額 (HKD $)</label>
-                <div className="text-4xl font-black text-right text-gray-800">{formData.amount}</div>
-              </section>
-
-              {inputType === 'expense' && (
-                <div className="flex gap-3">
-                  <button onClick={() => setFormData({...formData, nature: 'essential'})} className={`flex-1 py-4 rounded-xl font-black flex items-center justify-center gap-2 border-2 ${formData.nature === 'essential' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-400 border-gray-100'}`}>
-                    {formData.nature === 'essential' && <Check size={16}/>} 必要
-                  </button>
-                  <button onClick={() => setFormData({...formData, nature: 'desire'})} className={`flex-1 py-4 rounded-xl font-black flex items-center justify-center gap-2 border-2 ${formData.nature === 'desire' ? 'bg-orange-500 text-white border-orange-500 shadow-md' : 'bg-white text-gray-400 border-gray-100'}`}>
-                    {formData.nature === 'desire' && <Check size={16}/>} 想要
-                  </button>
+            {/* 計算機 */}
+            {showCalculator && (
+              <div className="bg-gray-100 p-4 rounded-2xl">
+                <div className="bg-white p-3 rounded-xl mb-3 text-right">
+                  <span className="text-2xl font-black">{formData.amount || '0'}</span>
                 </div>
-              )}
-            </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {[7, 8, 9, 'del', 4, 5, 6, 'C', 1, 2, 3, 0, '.', '00'].map((btn) => (
+                    <button
+                      key={btn}
+                      onClick={() => handleCalcPress(btn)}
+                      className="h-12 bg-white rounded-xl font-bold text-lg flex items-center justify-center active:scale-95"
+                    >
+                      {btn === 'del' ? <Delete size={20} /> : btn}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            {/* 分類按鈕 */}
-            <section className="grid grid-cols-4 gap-2">
-              {(inputType === 'expense' ? currentSettings.expCategories : currentSettings.incCategories).map(cat => (
-                <button 
-                  key={cat} 
-                  onClick={() => setFormData({...formData, category: cat})} 
-                  className={`py-3 rounded-xl border-2 text-[11px] font-black transition-all ${formData.category === cat ? 'bg-gray-900 text-white border-gray-900 shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </section>
-
-            {/* 備註 */}
-            <div className="flex items-center gap-2 bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <MessageSquare size={16} className="text-gray-400"/>
-              <input 
-                type="text" 
-                value={formData.note}
-                onChange={(e) => setFormData({...formData, note: e.target.value})}
-                placeholder="輸入備註..."
-                className="bg-transparent text-sm font-bold outline-none w-full"
+            {/* 日期選擇 */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">日期</label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200"
               />
             </div>
 
-            {/* 計算機鍵盤 */}
-            <section className="bg-gray-100 -mx-5 px-5 py-4 rounded-t-[2rem]">
-              <div className="grid grid-cols-4 gap-3">
-                {[1, 2, 3, 'del', 4, 5, 6, 'C', 7, 8, 9, '.', 0].map((btn) => (
-                  <button 
-                    key={btn}
-                    onClick={() => btn === 'del' ? handleCalcPress('del') : btn === 'C' ? handleCalcPress('C') : handleCalcPress(btn)}
-                    className="h-12 bg-white rounded-xl font-black text-xl flex items-center justify-center active:scale-90"
+            {/* 分類選擇 */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">{t.category}</label>
+              <div className="grid grid-cols-4 gap-2">
+                {(inputType === 'expense' ? settings.expenseCategories : settings.incomeCategories).map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setFormData({...formData, category: cat})}
+                    className={`py-2 rounded-xl text-sm font-bold border-2 transition-all ${
+                      formData.category === cat 
+                        ? `bg-${currentTheme.primary} text-white border-${currentTheme.primary}` 
+                        : 'bg-white border-gray-200 text-gray-600'
+                    }`}
                   >
-                    {btn === 'del' ? <Delete size={20}/> : btn}
+                    {cat}
                   </button>
                 ))}
-                <button 
-                  onClick={handleSave}
-                  className="col-span-1 h-12 bg-emerald-500 text-white rounded-xl font-black text-lg active:scale-95"
-                >
-                  OK
-                </button>
               </div>
-            </section>
+            </div>
+
+            {/* 必要/想要 (僅支出) */}
+            {inputType === 'expense' && (
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">類型</label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setFormData({...formData, nature: 'essential'})}
+                    className={`flex-1 py-3 rounded-xl font-bold border-2 ${
+                      formData.nature === 'essential' 
+                        ? 'bg-blue-600 text-white border-blue-600' 
+                        : 'bg-white border-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {t.necessary}
+                  </button>
+                  <button
+                    onClick={() => setFormData({...formData, nature: 'desire'})}
+                    className={`flex-1 py-3 rounded-xl font-bold border-2 ${
+                      formData.nature === 'desire' 
+                        ? 'bg-orange-500 text-white border-orange-500' 
+                        : 'bg-white border-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {t.want}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 付款方式 (僅收入) */}
+            {inputType === 'income' && (
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">{t.paymentMethod}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {settings.incomeCategories.map(method => (
+                    <button
+                      key={method}
+                      onClick={() => setFormData({...formData, paymentMethod: method})}
+                      className={`p-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 ${
+                        formData.paymentMethod === method 
+                          ? `bg-${currentTheme.primary} text-white border-${currentTheme.primary}` 
+                          : 'bg-white border-gray-200 text-gray-600'
+                      }`}
+                    >
+                      {method === '現金' && <DollarSign size={16} />}
+                      {method === '信用卡' && <CreditCard size={16} />}
+                      {method === 'AlipayHK' && <Smartphone size={16} />}
+                      {method === 'PayMe' && <Gift size={16} />}
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 備註 */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">{t.note}</label>
+              <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200">
+                <MessageSquare size={16} className="text-gray-400"/>
+                <input 
+                  type="text" 
+                  value={formData.note}
+                  onChange={(e) => setFormData({...formData, note: e.target.value})}
+                  placeholder={t.notePlaceholder}
+                  className="bg-transparent text-sm outline-none w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 按鈕 */}
+          <div className="p-5 border-t border-gray-100 flex gap-3">
+            <button
+              onClick={() => {
+                setShowInputPage(false);
+                setShowCalculator(false);
+              }}
+              className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold"
+            >
+              {t.cancel}
+            </button>
+            <button
+              onClick={handleSave}
+              className={`flex-1 bg-${currentTheme.primary} text-white py-4 rounded-xl font-bold`}
+            >
+              {t.save}
+            </button>
           </div>
         </div>
       )}
 
       {/* 底部導航 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-5 z-40 px-6">
-        <button onClick={() => {setActiveTab('home'); setShowInputPage(false);}} className={`flex flex-col items-center w-1/3 ${activeTab === 'home' && !showInputPage ? 'text-rose-500 font-black' : 'text-gray-300'}`}>
-          <Download size={28}/><span className="text-[9px] mt-1 uppercase font-bold">我的帳本</span>
+        <button 
+          onClick={() => {
+            setActiveTab('home');
+            setShowInputPage(false);
+            setShowSettingsPage(false);
+            setShowDetailPage(null);
+          }} 
+          className={`flex flex-col items-center w-1/3 ${activeTab === 'home' && !showInputPage ? `text-${currentTheme.primary} font-black` : 'text-gray-300'}`}
+        >
+          <Download size={28}/>
+          <span className="text-[9px] mt-1 uppercase font-bold">{t.transactions}</span>
         </button>
         <div className="relative -top-12 w-1/3 flex justify-center">
-          <button onClick={() => { setInputType('expense'); setShowInputPage(true); }} className="bg-[#B08D57] w-20 h-20 rounded-full flex items-center justify-center text-white shadow-2xl border-[8px] border-[#F8F9FB] active:scale-90 transition-all"><Plus size={40} /></button>
+          <button 
+            onClick={() => { 
+              setInputType('expense'); 
+              setShowInputPage(true);
+              setShowCalculator(false);
+              setFormData({
+                ...formData,
+                amount: '',
+                category: settings.expenseCategories[0],
+                paymentMethod: ''
+              });
+            }} 
+            className={`bg-[#B08D57] w-20 h-20 rounded-full flex items-center justify-center text-white shadow-2xl border-[8px] border-[#F8F9FB] active:scale-90 transition-all`}
+          >
+            <Plus size={40} />
+          </button>
         </div>
-        <button onClick={() => { setInputType('income'); setShowInputPage(true); }} className={`flex flex-col items-center w-1/3 ${showInputPage && inputType === 'income' ? 'text-blue-500 font-black' : 'text-gray-300'}`}>
-          <Wallet size={28}/><span className="text-[9px] mt-1 uppercase font-bold">新增收入</span>
+        <button 
+          onClick={() => { 
+            setInputType('income'); 
+            setShowInputPage(true);
+            setShowCalculator(false);
+            setFormData({
+              ...formData,
+              amount: '',
+              category: settings.incomeCategories[0],
+              paymentMethod: settings.incomeCategories[0]
+            });
+          }} 
+          className={`flex flex-col items-center w-1/3 ${showInputPage && inputType === 'income' ? `text-${currentTheme.primary} font-black` : 'text-gray-300'}`}
+        >
+          <Wallet size={28}/>
+          <span className="text-[9px] mt-1 uppercase font-bold">{t.addIncome}</span>
         </button>
       </nav>
     </div>
