@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Download, Wallet, Plus, X, Menu, ChevronLeft, ChevronRight, 
   Trash2, TrendingUp, Check, MessageSquare, Delete, Settings,
@@ -295,7 +295,7 @@ const App = () => {
         if (newAmount.includes('.')) return prev;
         newAmount = newAmount + '.';
       } else {
-        newAmount = newAmount + val;
+        newAmount = newAmount + val.toString();
       }
       return { ...prev, amount: newAmount };
     });
@@ -330,7 +330,8 @@ const App = () => {
   };
 
   const formatShortDate = (dateStr) => {
-    const [year, month, day] = dateStr.split('-');
+    if (!dateStr) return '';
+    const [, month, day] = dateStr.split('-');
     return `${month}/${day}`;
   };
 
@@ -343,19 +344,25 @@ const App = () => {
     ? records.filter(r => r.type === 'income')
     : [];
 
-  // 獲取最近10筆紀錄（不論支出或收入）
+  // 獲取最近10筆紀錄
   const recentRecords = records.slice(0, 10);
+
+  // 動態樣式輔助函數
+  const getThemeClass = (type, customColor = null) => {
+    const color = customColor || currentTheme[type];
+    return color ? `${type}-${color}` : '';
+  };
 
   return (
     <div className={`min-h-screen bg-[#F8F9FB] text-gray-900 pb-32 font-sans select-none overflow-x-hidden ${settings.theme === 'black' ? 'bg-gray-900 text-white' : ''}`}>
       
-      {/* 頂部 Header - 左側用戶圖示，右側設定圖示 */}
+      {/* 頂部 Header */}
       <div className={`bg-${currentTheme.primary} text-white p-5 sticky top-0 z-50 flex justify-between items-center shadow-md`}>
-        <button onClick={() => setShowSettingsPage(true)} className="p-2">
+        <button onClick={() => setShowSettingsPage(true)} className="p-2 hover:opacity-80 transition-opacity">
           <CircleUser size={28} />
         </button>
         <h1 className="font-bold text-xl">{t.appName}</h1>
-        <button onClick={() => setShowSettingsPage(true)} className="p-2">
+        <button onClick={() => setShowSettingsPage(true)} className="p-2 hover:opacity-80 transition-opacity">
           <Settings size={24} />
         </button>
       </div>
@@ -364,7 +371,7 @@ const App = () => {
       {showSettingsPage && (
         <div className="fixed inset-0 bg-white z-[300] overflow-y-auto">
           <div className={`bg-${currentTheme.primary} text-white p-5 sticky top-0 flex justify-between items-center`}>
-            <button onClick={handleCancelSettings} className="p-2"><X size={24} /></button>
+            <button onClick={handleCancelSettings} className="p-2 hover:opacity-80"><X size={24} /></button>
             <h2 className="font-bold text-lg">{t.settings}</h2>
             <div className="w-10"></div>
           </div>
@@ -448,7 +455,7 @@ const App = () => {
                         const newCats = tempSettings.expenseCategories.filter((_, i) => i !== idx);
                         setTempSettings({...tempSettings, expenseCategories: newCats});
                       }}
-                      className="text-red-500"
+                      className="text-red-500 hover:text-red-700"
                     >
                       <X size={14} />
                     </button>
@@ -458,14 +465,14 @@ const App = () => {
               <button
                 onClick={() => {
                   const newCat = prompt('請輸入新分類名稱');
-                  if (newCat) {
+                  if (newCat && newCat.trim()) {
                     setTempSettings({
                       ...tempSettings,
-                      expenseCategories: [...tempSettings.expenseCategories, newCat]
+                      expenseCategories: [...tempSettings.expenseCategories, newCat.trim()]
                     });
                   }
                 }}
-                className="mt-2 text-sm text-blue-500 font-bold"
+                className="mt-2 text-sm text-blue-500 font-bold hover:text-blue-700"
               >
                 + 新增分類
               </button>
@@ -483,7 +490,7 @@ const App = () => {
                         const newCats = tempSettings.incomeCategories.filter((_, i) => i !== idx);
                         setTempSettings({...tempSettings, incomeCategories: newCats});
                       }}
-                      className="text-red-500"
+                      className="text-red-500 hover:text-red-700"
                     >
                       <X size={14} />
                     </button>
@@ -493,14 +500,14 @@ const App = () => {
               <button
                 onClick={() => {
                   const newCat = prompt('請輸入新分類名稱');
-                  if (newCat) {
+                  if (newCat && newCat.trim()) {
                     setTempSettings({
                       ...tempSettings,
-                      incomeCategories: [...tempSettings.incomeCategories, newCat]
+                      incomeCategories: [...tempSettings.incomeCategories, newCat.trim()]
                     });
                   }
                 }}
-                className="mt-2 text-sm text-blue-500 font-bold"
+                className="mt-2 text-sm text-blue-500 font-bold hover:text-blue-700"
               >
                 + 新增分類
               </button>
@@ -510,13 +517,13 @@ const App = () => {
             <div className="flex gap-3 pt-4">
               <button
                 onClick={handleSaveSettings}
-                className={`flex-1 bg-${currentTheme.primary} text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2`}
+                className={`flex-1 bg-${currentTheme.primary} text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity`}
               >
                 <Save size={20} /> {t.save}
               </button>
               <button
                 onClick={handleCancelSettings}
-                className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors"
               >
                 <RefreshCw size={20} /> {t.cancel}
               </button>
@@ -529,7 +536,7 @@ const App = () => {
       {(showDetailPage === 'expense' || showDetailPage === 'income') && (
         <div className="fixed inset-0 bg-white z-[250] overflow-y-auto">
           <div className={`bg-${currentTheme.primary} text-white p-5 sticky top-0 flex justify-between items-center`}>
-            <button onClick={() => setShowDetailPage(null)} className="p-2"><ChevronLeft size={28} /></button>
+            <button onClick={() => setShowDetailPage(null)} className="p-2 hover:opacity-80"><ChevronLeft size={28} /></button>
             <h2 className="font-bold text-lg">
               {showDetailPage === 'expense' ? t.allExpenses : t.allIncomes}
             </h2>
@@ -559,7 +566,7 @@ const App = () => {
                     </p>
                     <button
                       onClick={() => handleDeleteRecord(record.id)}
-                      className="text-gray-400 hover:text-red-500"
+                      className="text-gray-400 hover:text-red-500 transition-colors"
                     >
                       <Trash2 size={20} />
                     </button>
@@ -573,12 +580,12 @@ const App = () => {
 
       {/* 主頁面內容 */}
       {!showInputPage && !showSettingsPage && !showDetailPage && (
-        <main className="p-4 space-y-6 animate-in fade-in">
-          {/* 數據概覽卡片 - 放大字型 */}
+        <main className="p-4 space-y-6">
+          {/* 數據概覽卡片 */}
           <div className="grid grid-cols-2 gap-4">
             <button 
               onClick={() => setShowDetailPage('expense')}
-              className="bg-black text-white p-6 rounded-[2rem] shadow-lg text-left transition-transform active:scale-95"
+              className="bg-black text-white p-6 rounded-[2rem] shadow-lg text-left transition-transform active:scale-95 hover:scale-[0.98]"
             >
               <p className="text-sm font-bold opacity-60">{t.totalExpense}</p>
               <p className="text-3xl font-black text-rose-300 mt-1">HK$ {totalExpense}</p>
@@ -586,7 +593,7 @@ const App = () => {
             </button>
             <button 
               onClick={() => setShowDetailPage('income')}
-              className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm text-left transition-transform active:scale-95"
+              className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm text-left transition-transform active:scale-95 hover:scale-[0.98]"
             >
               <p className="text-sm font-bold text-gray-400">{t.totalIncome}</p>
               <p className={`text-3xl font-black text-${currentTheme.text} mt-1`}>HK$ {totalIncome}</p>
@@ -594,7 +601,7 @@ const App = () => {
             </button>
           </div>
 
-          {/* 動態長條圖 - 放大字型 */}
+          {/* 動態長條圖 */}
           <section className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-50">
             <div className="flex justify-between items-center mb-6 px-2">
               <h3 className="text-base font-black text-gray-700">{t.dailyTrend}</h3>
@@ -608,11 +615,11 @@ const App = () => {
                 <div key={date} className="flex gap-1 items-end h-full w-full justify-center">
                   <div 
                     className="w-6 bg-rose-400 rounded-t-sm transition-all duration-300" 
-                    style={{ height: `${chartData.heights[idx].expense}%` }}
+                    style={{ height: `${chartData.heights[idx].expense}%`, minHeight: '2px' }}
                   ></div>
                   <div 
                     className={`w-6 bg-${currentTheme.primary} rounded-t-sm transition-all duration-300`} 
-                    style={{ height: `${chartData.heights[idx].income}%` }}
+                    style={{ height: `${chartData.heights[idx].income}%`, minHeight: '2px' }}
                   ></div>
                 </div>
               ))}
@@ -627,7 +634,7 @@ const App = () => {
             )}
           </section>
 
-          {/* 交易記錄 - 只顯示最近10筆，放大字型 */}
+          {/* 交易記錄 - 只顯示最近10筆 */}
           <div className="space-y-4">
             <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest px-2">
               {t.recentTransactions} ({Math.min(10, records.length)}/{records.length})
@@ -666,12 +673,12 @@ const App = () => {
 
       {/* 新增頁面 */}
       {showInputPage && (
-        <div className="fixed inset-0 bg-white z-[200] flex flex-col animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 bg-white z-[200] flex flex-col">
           <div className={`bg-${inputType === 'expense' ? 'rose-500' : currentTheme.primary} p-5 text-white flex justify-between items-center`}>
             <button onClick={() => {
               setShowInputPage(false);
               setShowCalculator(false);
-            }} className="p-2">
+            }} className="p-2 hover:opacity-80">
               <X size={30} />
             </button>
             <span className="text-lg font-black">
@@ -688,7 +695,7 @@ const App = () => {
               </label>
               <button
                 onClick={() => setShowCalculator(!showCalculator)}
-                className="w-full bg-gray-50 p-5 rounded-2xl text-left border border-gray-200"
+                className="w-full bg-gray-50 p-5 rounded-2xl text-left border border-gray-200 hover:bg-gray-100 transition-colors"
               >
                 {formData.amount ? (
                   <span className="text-4xl font-black text-gray-800">HK$ {formData.amount}</span>
@@ -709,7 +716,7 @@ const App = () => {
                     <button
                       key={btn}
                       onClick={() => handleCalcPress(btn)}
-                      className="h-14 bg-white rounded-xl font-bold text-xl flex items-center justify-center active:scale-95"
+                      className="h-14 bg-white rounded-xl font-bold text-xl flex items-center justify-center active:scale-95 hover:bg-gray-50 transition-all"
                     >
                       {btn === 'del' ? <Delete size={22} /> : btn}
                     </button>
@@ -725,7 +732,7 @@ const App = () => {
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({...formData, date: e.target.value})}
-                className="w-full p-4 bg-gray-50 rounded-xl border border-gray-200 text-base"
+                className="w-full p-4 bg-gray-50 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-gray-400"
               />
             </div>
 
@@ -740,7 +747,7 @@ const App = () => {
                     className={`py-3 rounded-xl text-sm font-bold border-2 transition-all ${
                       formData.category === cat 
                         ? `bg-${currentTheme.primary} text-white border-${currentTheme.primary}` 
-                        : 'bg-white border-gray-200 text-gray-600'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     {cat}
@@ -756,20 +763,20 @@ const App = () => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setFormData({...formData, nature: 'essential'})}
-                    className={`flex-1 py-4 rounded-xl font-bold border-2 text-base ${
+                    className={`flex-1 py-4 rounded-xl font-bold border-2 text-base transition-all ${
                       formData.nature === 'essential' 
                         ? 'bg-blue-600 text-white border-blue-600' 
-                        : 'bg-white border-gray-200 text-gray-600'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     {t.necessary}
                   </button>
                   <button
                     onClick={() => setFormData({...formData, nature: 'desire'})}
-                    className={`flex-1 py-4 rounded-xl font-bold border-2 text-base ${
+                    className={`flex-1 py-4 rounded-xl font-bold border-2 text-base transition-all ${
                       formData.nature === 'desire' 
                         ? 'bg-orange-500 text-white border-orange-500' 
-                        : 'bg-white border-gray-200 text-gray-600'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     {t.want}
@@ -787,10 +794,10 @@ const App = () => {
                     <button
                       key={method}
                       onClick={() => setFormData({...formData, paymentMethod: method})}
-                      className={`p-4 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 ${
+                      className={`p-4 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 transition-all ${
                         formData.paymentMethod === method 
                           ? `bg-${currentTheme.primary} text-white border-${currentTheme.primary}` 
-                          : 'bg-white border-gray-200 text-gray-600'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                       }`}
                     >
                       {method === '現金' && <DollarSign size={18} />}
@@ -827,13 +834,13 @@ const App = () => {
                 setShowInputPage(false);
                 setShowCalculator(false);
               }}
-              className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold text-base"
+              className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold text-base hover:bg-gray-300 transition-colors"
             >
               {t.cancel}
             </button>
             <button
               onClick={handleSave}
-              className={`flex-1 bg-${currentTheme.primary} text-white py-4 rounded-xl font-bold text-base`}
+              className={`flex-1 bg-${currentTheme.primary} text-white py-4 rounded-xl font-bold text-base hover:opacity-90 transition-opacity`}
             >
               {t.save}
             </button>
@@ -862,13 +869,15 @@ const App = () => {
               setShowInputPage(true);
               setShowCalculator(false);
               setFormData({
-                ...formData,
                 amount: '',
                 category: settings.expenseCategories[0],
+                nature: 'essential',
+                note: '',
+                date: new Date().toISOString().slice(0,10),
                 paymentMethod: ''
               });
             }} 
-            className={`bg-[#B08D57] w-20 h-20 rounded-full flex items-center justify-center text-white shadow-2xl border-[8px] border-[#F8F9FB] active:scale-90 transition-all`}
+            className="bg-[#B08D57] w-20 h-20 rounded-full flex items-center justify-center text-white shadow-2xl border-[8px] border-[#F8F9FB] active:scale-90 transition-all hover:scale-95"
           >
             <Plus size={40} />
           </button>
@@ -879,9 +888,11 @@ const App = () => {
             setShowInputPage(true);
             setShowCalculator(false);
             setFormData({
-              ...formData,
               amount: '',
               category: settings.incomeCategories[0],
+              nature: 'essential',
+              note: '',
+              date: new Date().toISOString().slice(0,10),
               paymentMethod: settings.incomeCategories[0]
             });
           }} 
