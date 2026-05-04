@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  Download, Wallet, Plus, X, ChevronLeft, ChevronRight, Menu, 
+  Download, Wallet, Plus, X, Menu, 
   Trash2, TrendingUp, Check, MessageSquare, Delete
 } from 'lucide-react';
 
@@ -9,7 +9,7 @@ const App = () => {
   const [showInputPage, setShowInputPage] = useState(false);
   const [inputType, setInputType] = useState('expense');
   
-  // 1. 數據全部清空
+  // 記帳資料
   const [records, setRecords] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -20,12 +20,64 @@ const App = () => {
     date: '2026-05-04'
   });
 
-  // 2. 分類順序重排
+  // 分類設定
   const [currentSettings] = useState({
     appName: '隨手記 | Spending Ace',
     expCategories: ['購物', '交通', '餐飲', '補習', '水電費', '旅遊', '醫療', '其他'],
     incCategories: ['薪金', '獎金', '投資收入', '其他']
   });
+
+  // 計算最近7天的日期 (從今天往回推)
+  const getLast7Days = () => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0,10);
+      days.push(dateStr);
+    }
+    return days;
+  };
+
+  // 動態圖表數據：依最近7天聚合支出/收入
+  const chartData = useMemo(() => {
+    const last7Days = getLast7Days();
+    const dailyExpense = {};
+    const dailyIncome = {};
+    
+    // 初始化
+    last7Days.forEach(date => {
+      dailyExpense[date] = 0;
+      dailyIncome[date] = 0;
+    });
+
+    // 加總紀錄
+    records.forEach(record => {
+      const date = record.date;
+      if (dailyExpense[date] !== undefined) {
+        if (record.type === 'expense') {
+          dailyExpense[date] += record.amount;
+        } else {
+          dailyIncome[date] += record.amount;
+        }
+      }
+    });
+
+    // 轉為陣列並找出最大值（用於比例高度）
+    const expenseValues = Object.values(dailyExpense);
+    const incomeValues = Object.values(dailyIncome);
+    const maxExpense = Math.max(...expenseValues, 0);
+    const maxIncome = Math.max(...incomeValues, 0);
+    const globalMax = Math.max(maxExpense, maxIncome, 1); // 避免除以0
+
+    // 計算高度百分比（最高柱為 100%）
+    const heights = last7Days.map(date => ({
+      expense: (dailyExpense[date] / globalMax) * 100,
+      income: (dailyIncome[date] / globalMax) * 100
+    }));
+
+    return { dates: last7Days, heights };
+  }, [records]);
 
   const handleCalcPress = (val) => {
     setFormData(prev => {
@@ -47,6 +99,16 @@ const App = () => {
     setRecords([newRecord, ...records]);
     setShowInputPage(false);
     setFormData({ amount: '0', category: '購物', nature: 'essential', note: '', date: '2026-05-04' });
+  };
+
+  const handleDeleteRecord = (id) => {
+    setRecords(records.filter(record => record.id !== id));
+  };
+
+  // 輔助：日期顯示為 MM/DD
+  const formatShortDate = (dateStr) => {
+    const [year, month, day] = dateStr.split('-');
+    return `${month}/${day}`;
   };
 
   return (
@@ -74,27 +136,37 @@ const App = () => {
             </div>
           </div>
 
-          {/* 強制顯示 Bar Chart */}
+          {/* 動態長條圖 */}
           <section className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-50">
             <div className="flex justify-between items-center mb-6 px-2">
-              <h3 className="text-sm font-black text-gray-700">每日趨勢</h3>
+              <h3 className="text-sm font-black text-gray-700">每日趨勢（最近7天）</h3>
               <div className="flex gap-4 text-[10px] font-bold">
                 <span className="flex items-center gap-1 text-rose-500"><div className="w-2 h-2 rounded-full bg-rose-500"></div> 支出</span>
                 <span className="flex items-center gap-1 text-emerald-500"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> 收入</span>
               </div>
             </div>
-            <div className="h-32 flex items-end justify-around gap-2 px-2 border-b border-gray-100 pb-2">
-              {/* 預設靜態 Bars */}
-              {[30, 45, 25, 60, 35, 50, 40].map((h, i) => (
-                <div key={i} className="flex gap-1 items-end h-full">
-                  <div className="w-3 bg-rose-400 rounded-t-sm" style={{ height: `${h}%` }}></div>
-                  <div className="w-3 bg-emerald-500 rounded-t-sm" style={{ height: `${h + 15}%` }}></div>
+            <div className="h-40 flex items-end justify-around gap-1 px-2 border-b border-gray-100 pb-2">
+              {chartData.dates.map((date, idx) => (
+                <div key={date} className="flex gap-1 items-end h-full w-full justify-center">
+                  <div 
+                    className="w-5 bg-rose-400 rounded-t-sm transition-all duration-300" 
+                    style={{ height: `${chartData.heights[idx].expense}%` }}
+                  ></div>
+                  <div 
+                    className="w-5 bg-emerald-500 rounded-t-sm transition-all duration-300" 
+                    style={{ height: `${chartData.heights[idx].income}%` }}
+                  ></div>
                 </div>
               ))}
             </div>
-            <div className="flex justify-around mt-2 text-[9px] font-black text-gray-300 uppercase">
-              <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            <div className="flex justify-around mt-3 text-[9px] font-black text-gray-400 uppercase">
+              {chartData.dates.map(date => (
+                <span key={date}>{formatShortDate(date)}</span>
+              ))}
             </div>
+            {records.length === 0 && (
+              <div className="text-center text-xs text-gray-300 mt-4">新增紀錄後，圖表將自動更新</div>
+            )}
           </section>
 
           {/* 紀錄列表 */}
@@ -112,7 +184,16 @@ const App = () => {
                       <p className="text-[10px] text-gray-400 font-bold">{record.note || record.date}</p>
                     </div>
                   </div>
-                  <p className={`font-black ${record.type === 'expense' ? 'text-rose-600' : 'text-emerald-600'}`}>HK${record.amount}</p>
+                  <div className="flex items-center gap-3">
+                    <p className={`font-black ${record.type === 'expense' ? 'text-rose-600' : 'text-emerald-600'}`}>HK${record.amount}</p>
+                    <button 
+                      onClick={() => handleDeleteRecord(record.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                      aria-label="刪除紀錄"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
               ))
             )}
@@ -120,7 +201,7 @@ const App = () => {
         </main>
       )}
 
-      {/* 新增頁面 */}
+      {/* 新增頁面（保持原有設計） */}
       {showInputPage && (
         <div className="fixed inset-0 bg-white z-[200] flex flex-col animate-in slide-in-from-bottom duration-300">
           <div className={`${inputType === 'expense' ? 'bg-rose-500' : 'bg-blue-500'} p-5 text-white flex justify-between items-center`}>
@@ -161,7 +242,7 @@ const App = () => {
               )}
             </div>
 
-            {/* 分類 - 已重排 */}
+            {/* 分類按鈕 */}
             <section className="grid grid-cols-4 gap-2">
               {(inputType === 'expense' ? currentSettings.expCategories : currentSettings.incCategories).map(cat => (
                 <button 
