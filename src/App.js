@@ -3,18 +3,17 @@ import {
   Download, Wallet, Plus, X, Menu, ChevronLeft, ChevronRight, 
   Trash2, TrendingUp, Check, MessageSquare, Delete, Settings,
   CreditCard, DollarSign, Smartphone, Gift, Save, RefreshCw,
-  Eye, ArrowUpCircle, ArrowDownCircle
+  Eye, ArrowUpCircle, ArrowDownCircle, BarChart3, User, CircleUser
 } from 'lucide-react';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [showInputPage, setShowInputPage] = useState(false);
   const [showSettingsPage, setShowSettingsPage] = useState(false);
-  const [showDetailPage, setShowDetailPage] = useState(null); // 'expense' or 'income'
+  const [showDetailPage, setShowDetailPage] = useState(null);
   const [inputType, setInputType] = useState('expense');
   const [showCalculator, setShowCalculator] = useState(false);
   
-  // 記帳資料
   const [records, setRecords] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -26,17 +25,17 @@ const App = () => {
     paymentMethod: ''
   });
 
-  // 設定資料
   const [settings, setSettings] = useState({
     language: 'zh-TW',
     theme: 'green',
     expenseCategories: ['交通', '飲食', '購物', '補習', '其他'],
-    incomeCategories: ['現金', '信用卡', 'AlipayHK', 'PayMe']
+    incomeCategories: ['現金', '信用卡', 'AlipayHK', 'PayMe'],
+    userName: '用戶',
+    userAvatar: ''
   });
 
   const [tempSettings, setTempSettings] = useState({ ...settings });
 
-  // 語言文字對應
   const texts = {
     'zh-TW': {
       appName: '隨手記 | Spending Ace',
@@ -69,7 +68,10 @@ const App = () => {
       black: '黑色',
       allExpenses: '全部支出',
       allIncomes: '全部收入',
-      paymentMethod: '付款方式'
+      paymentMethod: '付款方式',
+      recentTransactions: '最近記錄',
+      profile: '個人資料',
+      userName: '用戶名稱'
     },
     'en': {
       appName: 'Spending Ace',
@@ -102,7 +104,10 @@ const App = () => {
       black: 'Black',
       allExpenses: 'All Expenses',
       allIncomes: 'All Incomes',
-      paymentMethod: 'Payment Method'
+      paymentMethod: 'Payment Method',
+      recentTransactions: 'Recent',
+      profile: 'Profile',
+      userName: 'Username'
     },
     'ja': {
       appName: 'スケッチ | Spending Ace',
@@ -135,7 +140,10 @@ const App = () => {
       black: 'ブラック',
       allExpenses: '全ての支出',
       allIncomes: '全ての収入',
-      paymentMethod: '支払い方法'
+      paymentMethod: '支払い方法',
+      recentTransactions: '最近',
+      profile: 'プロフィール',
+      userName: 'ユーザー名'
     },
     'de': {
       appName: 'Spending Ace',
@@ -168,7 +176,10 @@ const App = () => {
       black: 'Schwarz',
       allExpenses: 'Alle Ausgaben',
       allIncomes: 'Alle Einnahmen',
-      paymentMethod: 'Zahlungsmethode'
+      paymentMethod: 'Zahlungsmethode',
+      recentTransactions: 'Neueste',
+      profile: 'Profil',
+      userName: 'Benutzername'
     },
     'es': {
       appName: 'Spending Ace',
@@ -201,23 +212,24 @@ const App = () => {
       black: 'Negro',
       allExpenses: 'Todos los Gastos',
       allIncomes: 'Todos los Ingresos',
-      paymentMethod: 'Método de Pago'
+      paymentMethod: 'Método de Pago',
+      recentTransactions: 'Recientes',
+      profile: 'Perfil',
+      userName: 'Nombre de usuario'
     }
   };
 
   const t = texts[settings.language];
 
-  // 主題顏色
   const themes = {
-    blue: { primary: 'blue-500', secondary: 'blue-600', bg: 'blue-50' },
-    green: { primary: 'emerald-500', secondary: 'emerald-600', bg: 'emerald-50' },
-    gray: { primary: 'gray-500', secondary: 'gray-600', bg: 'gray-50' },
-    black: { primary: 'gray-900', secondary: 'gray-900', bg: 'gray-100' }
+    blue: { primary: 'blue-500', secondary: 'blue-600', bg: 'blue-50', text: 'blue-600' },
+    green: { primary: 'emerald-500', secondary: 'emerald-600', bg: 'emerald-50', text: 'emerald-600' },
+    gray: { primary: 'gray-500', secondary: 'gray-600', bg: 'gray-50', text: 'gray-600' },
+    black: { primary: 'gray-900', secondary: 'gray-900', bg: 'gray-100', text: 'gray-900' }
   };
 
   const currentTheme = themes[settings.theme];
 
-  // 計算最近7天的日期
   const getLast7Days = () => {
     const days = [];
     for (let i = 6; i >= 0; i--) {
@@ -229,7 +241,6 @@ const App = () => {
     return days;
   };
 
-  // 動態圖表數據
   const chartData = useMemo(() => {
     const last7Days = getLast7Days();
     const dailyExpense = {};
@@ -323,27 +334,30 @@ const App = () => {
     return `${month}/${day}`;
   };
 
-  // 取得總支出和總收入
   const totalExpense = records.filter(r => r.type === 'expense').reduce((a, b) => a + b.amount, 0);
   const totalIncome = records.filter(r => r.type === 'income').reduce((a, b) => a + b.amount, 0);
 
-  // 篩選支出或收入紀錄
   const filteredRecords = showDetailPage === 'expense' 
     ? records.filter(r => r.type === 'expense')
     : showDetailPage === 'income'
     ? records.filter(r => r.type === 'income')
     : [];
 
+  // 獲取最近10筆紀錄（不論支出或收入）
+  const recentRecords = records.slice(0, 10);
+
   return (
     <div className={`min-h-screen bg-[#F8F9FB] text-gray-900 pb-32 font-sans select-none overflow-x-hidden ${settings.theme === 'black' ? 'bg-gray-900 text-white' : ''}`}>
       
-      {/* 頂部 Header */}
+      {/* 頂部 Header - 左側用戶圖示，右側設定圖示 */}
       <div className={`bg-${currentTheme.primary} text-white p-5 sticky top-0 z-50 flex justify-between items-center shadow-md`}>
+        <button onClick={() => setShowSettingsPage(true)} className="p-2">
+          <CircleUser size={28} />
+        </button>
+        <h1 className="font-bold text-xl">{t.appName}</h1>
         <button onClick={() => setShowSettingsPage(true)} className="p-2">
           <Settings size={24} />
         </button>
-        <h1 className="font-bold text-lg">{t.appName}</h1>
-        <div className="w-10"></div>
       </div>
 
       {/* 設定頁面 */}
@@ -356,6 +370,25 @@ const App = () => {
           </div>
 
           <div className="p-6 space-y-6">
+            {/* 個人資料 */}
+            <div>
+              <label className="block text-sm font-bold mb-3 text-gray-700">{t.profile}</label>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                  <CircleUser size={40} className="text-gray-500" />
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={tempSettings.userName}
+                    onChange={(e) => setTempSettings({...tempSettings, userName: e.target.value})}
+                    className="w-full p-2 border rounded-lg text-sm"
+                    placeholder={t.userName}
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* 語言設定 */}
             <div>
               <label className="block text-sm font-bold mb-3 text-gray-700">{t.language}</label>
@@ -505,21 +538,21 @@ const App = () => {
 
           <div className="p-4 space-y-3">
             {filteredRecords.length === 0 ? (
-              <div className="text-center py-20 text-gray-400 font-bold">
+              <div className="text-center py-20 text-gray-400 font-bold text-base">
                 {t.noData}
               </div>
             ) : (
               filteredRecords.map(record => (
-                <div key={record.id} className="bg-gray-50 p-4 rounded-2xl flex justify-between items-center">
+                <div key={record.id} className="bg-gray-50 p-5 rounded-2xl flex justify-between items-center">
                   <div>
-                    <p className="font-bold text-gray-800">{record.category}</p>
-                    <p className="text-xs text-gray-500">{record.note || record.date}</p>
+                    <p className="font-bold text-gray-800 text-base">{record.category}</p>
+                    <p className="text-sm text-gray-500 mt-1">{record.note || record.date}</p>
                     {record.paymentMethod && (
                       <p className="text-xs text-gray-400 mt-1">{record.paymentMethod}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className={`font-black ${
+                    <p className={`font-black text-lg ${
                       showDetailPage === 'expense' ? 'text-red-500' : 'text-green-500'
                     }`}>
                       {showDetailPage === 'expense' ? '-' : '+'} HK${record.amount}
@@ -528,7 +561,7 @@ const App = () => {
                       onClick={() => handleDeleteRecord(record.id)}
                       className="text-gray-400 hover:text-red-500"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={20} />
                     </button>
                   </div>
                 </div>
@@ -541,85 +574,87 @@ const App = () => {
       {/* 主頁面內容 */}
       {!showInputPage && !showSettingsPage && !showDetailPage && (
         <main className="p-4 space-y-6 animate-in fade-in">
-          {/* 數據概覽卡片 */}
+          {/* 數據概覽卡片 - 放大字型 */}
           <div className="grid grid-cols-2 gap-4">
             <button 
               onClick={() => setShowDetailPage('expense')}
               className="bg-black text-white p-6 rounded-[2rem] shadow-lg text-left transition-transform active:scale-95"
             >
-              <p className="text-xs font-bold opacity-60">{t.totalExpense}</p>
-              <p className="text-2xl font-black text-rose-300">HK$ {totalExpense}</p>
-              <ArrowUpCircle size={20} className="mt-2 opacity-60" />
+              <p className="text-sm font-bold opacity-60">{t.totalExpense}</p>
+              <p className="text-3xl font-black text-rose-300 mt-1">HK$ {totalExpense}</p>
+              <ArrowUpCircle size={22} className="mt-3 opacity-60" />
             </button>
             <button 
               onClick={() => setShowDetailPage('income')}
               className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm text-left transition-transform active:scale-95"
             >
-              <p className="text-xs font-bold text-gray-400">{t.totalIncome}</p>
-              <p className={`text-2xl font-black text-${currentTheme.primary}`}>HK$ {totalIncome}</p>
-              <ArrowDownCircle size={20} className="mt-2 text-gray-400" />
+              <p className="text-sm font-bold text-gray-400">{t.totalIncome}</p>
+              <p className={`text-3xl font-black text-${currentTheme.text} mt-1`}>HK$ {totalIncome}</p>
+              <ArrowDownCircle size={22} className="mt-3 text-gray-400" />
             </button>
           </div>
 
-          {/* 動態長條圖 */}
+          {/* 動態長條圖 - 放大字型 */}
           <section className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-50">
             <div className="flex justify-between items-center mb-6 px-2">
-              <h3 className="text-sm font-black text-gray-700">{t.dailyTrend}</h3>
-              <div className="flex gap-4 text-[10px] font-bold">
+              <h3 className="text-base font-black text-gray-700">{t.dailyTrend}</h3>
+              <div className="flex gap-4 text-xs font-bold">
                 <span className="flex items-center gap-1 text-rose-500"><div className="w-2 h-2 rounded-full bg-rose-500"></div> {t.expense}</span>
-                <span className={`flex items-center gap-1 text-${currentTheme.primary}`}><div className={`w-2 h-2 rounded-full bg-${currentTheme.primary}`}></div> {t.income}</span>
+                <span className={`flex items-center gap-1 text-${currentTheme.text}`}><div className={`w-2 h-2 rounded-full bg-${currentTheme.primary}`}></div> {t.income}</span>
               </div>
             </div>
-            <div className="h-40 flex items-end justify-around gap-1 px-2 border-b border-gray-100 pb-2">
+            <div className="h-48 flex items-end justify-around gap-1 px-2 border-b border-gray-100 pb-2">
               {chartData.dates.map((date, idx) => (
                 <div key={date} className="flex gap-1 items-end h-full w-full justify-center">
                   <div 
-                    className="w-5 bg-rose-400 rounded-t-sm transition-all duration-300" 
+                    className="w-6 bg-rose-400 rounded-t-sm transition-all duration-300" 
                     style={{ height: `${chartData.heights[idx].expense}%` }}
                   ></div>
                   <div 
-                    className={`w-5 bg-${currentTheme.primary} rounded-t-sm transition-all duration-300`} 
+                    className={`w-6 bg-${currentTheme.primary} rounded-t-sm transition-all duration-300`} 
                     style={{ height: `${chartData.heights[idx].income}%` }}
                   ></div>
                 </div>
               ))}
             </div>
-            <div className="flex justify-around mt-3 text-[9px] font-black text-gray-400 uppercase">
+            <div className="flex justify-around mt-3 text-xs font-black text-gray-400 uppercase">
               {chartData.dates.map(date => (
                 <span key={date}>{formatShortDate(date)}</span>
               ))}
             </div>
             {records.length === 0 && (
-              <div className="text-center text-xs text-gray-300 mt-4">{t.noData}</div>
+              <div className="text-center text-sm text-gray-300 mt-4">{t.noData}</div>
             )}
           </section>
 
-          {/* 紀錄列表 */}
+          {/* 交易記錄 - 只顯示最近10筆，放大字型 */}
           <div className="space-y-4">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">{t.transactions}</h3>
+            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest px-2">
+              {t.recentTransactions} ({Math.min(10, records.length)}/{records.length})
+            </h3>
             {records.length === 0 ? (
-              <div className="text-center py-10 text-gray-300 font-bold text-sm">{t.noData}</div>
+              <div className="text-center py-10 text-gray-300 font-bold text-base">{t.noData}</div>
             ) : (
-              records.slice(0, 5).map(record => (
+              recentRecords.map(record => (
                 <div key={record.id} className="bg-white p-5 rounded-[1.8rem] flex justify-between items-center border border-gray-100 shadow-sm">
                   <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${record.type === 'expense' ? 'bg-rose-50 text-rose-500' : `bg-${currentTheme.bg} text-${currentTheme.primary}`}`}>
-                      <TrendingUp size={18}/>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${record.type === 'expense' ? 'bg-rose-50 text-rose-500' : `bg-${currentTheme.bg} text-${currentTheme.text}`}`}>
+                      <TrendingUp size={22}/>
                     </div>
                     <div>
-                      <p className="font-black text-gray-800 text-sm">{record.category}</p>
-                      <p className="text-[10px] text-gray-400 font-bold">{record.note || record.date}</p>
+                      <p className="font-black text-gray-800 text-base">{record.category}</p>
+                      <p className="text-sm text-gray-400 font-medium mt-0.5">{record.note || record.date}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className={`font-black ${record.type === 'expense' ? 'text-rose-600' : `text-${currentTheme.primary}`}`}>
+                    <p className={`font-black text-lg ${record.type === 'expense' ? 'text-rose-600' : `text-${currentTheme.text}`}`}>
                       HK${record.amount}
                     </p>
                     <button 
                       onClick={() => handleDeleteRecord(record.id)}
                       className="text-gray-400 hover:text-red-500 transition-colors p-1"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={20} />
                     </button>
                   </div>
                 </div>
@@ -648,17 +683,17 @@ const App = () => {
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {/* 金額輸入區域 */}
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">
+              <label className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 block">
                 {t.amount} <span className="text-red-500">*</span>
               </label>
               <button
                 onClick={() => setShowCalculator(!showCalculator)}
-                className="w-full bg-gray-50 p-4 rounded-2xl text-left border border-gray-200"
+                className="w-full bg-gray-50 p-5 rounded-2xl text-left border border-gray-200"
               >
                 {formData.amount ? (
-                  <span className="text-3xl font-black text-gray-800">HK$ {formData.amount}</span>
+                  <span className="text-4xl font-black text-gray-800">HK$ {formData.amount}</span>
                 ) : (
-                  <span className="text-gray-400">{t.amountPlaceholder}</span>
+                  <span className="text-base text-gray-400">{t.amountPlaceholder}</span>
                 )}
               </button>
             </div>
@@ -666,17 +701,17 @@ const App = () => {
             {/* 計算機 */}
             {showCalculator && (
               <div className="bg-gray-100 p-4 rounded-2xl">
-                <div className="bg-white p-3 rounded-xl mb-3 text-right">
-                  <span className="text-2xl font-black">{formData.amount || '0'}</span>
+                <div className="bg-white p-4 rounded-xl mb-3 text-right">
+                  <span className="text-3xl font-black">{formData.amount || '0'}</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {[7, 8, 9, 'del', 4, 5, 6, 'C', 1, 2, 3, 0, '.', '00'].map((btn) => (
                     <button
                       key={btn}
                       onClick={() => handleCalcPress(btn)}
-                      className="h-12 bg-white rounded-xl font-bold text-lg flex items-center justify-center active:scale-95"
+                      className="h-14 bg-white rounded-xl font-bold text-xl flex items-center justify-center active:scale-95"
                     >
-                      {btn === 'del' ? <Delete size={20} /> : btn}
+                      {btn === 'del' ? <Delete size={22} /> : btn}
                     </button>
                   ))}
                 </div>
@@ -685,24 +720,24 @@ const App = () => {
 
             {/* 日期選擇 */}
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">日期</label>
+              <label className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 block">日期</label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({...formData, date: e.target.value})}
-                className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200"
+                className="w-full p-4 bg-gray-50 rounded-xl border border-gray-200 text-base"
               />
             </div>
 
             {/* 分類選擇 */}
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">{t.category}</label>
+              <label className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 block">{t.category}</label>
               <div className="grid grid-cols-4 gap-2">
                 {(inputType === 'expense' ? settings.expenseCategories : settings.incomeCategories).map(cat => (
                   <button
                     key={cat}
                     onClick={() => setFormData({...formData, category: cat})}
-                    className={`py-2 rounded-xl text-sm font-bold border-2 transition-all ${
+                    className={`py-3 rounded-xl text-sm font-bold border-2 transition-all ${
                       formData.category === cat 
                         ? `bg-${currentTheme.primary} text-white border-${currentTheme.primary}` 
                         : 'bg-white border-gray-200 text-gray-600'
@@ -717,11 +752,11 @@ const App = () => {
             {/* 必要/想要 (僅支出) */}
             {inputType === 'expense' && (
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">類型</label>
+                <label className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 block">類型</label>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setFormData({...formData, nature: 'essential'})}
-                    className={`flex-1 py-3 rounded-xl font-bold border-2 ${
+                    className={`flex-1 py-4 rounded-xl font-bold border-2 text-base ${
                       formData.nature === 'essential' 
                         ? 'bg-blue-600 text-white border-blue-600' 
                         : 'bg-white border-gray-200 text-gray-600'
@@ -731,7 +766,7 @@ const App = () => {
                   </button>
                   <button
                     onClick={() => setFormData({...formData, nature: 'desire'})}
-                    className={`flex-1 py-3 rounded-xl font-bold border-2 ${
+                    className={`flex-1 py-4 rounded-xl font-bold border-2 text-base ${
                       formData.nature === 'desire' 
                         ? 'bg-orange-500 text-white border-orange-500' 
                         : 'bg-white border-gray-200 text-gray-600'
@@ -746,22 +781,22 @@ const App = () => {
             {/* 付款方式 (僅收入) */}
             {inputType === 'income' && (
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">{t.paymentMethod}</label>
+                <label className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 block">{t.paymentMethod}</label>
                 <div className="grid grid-cols-2 gap-2">
                   {settings.incomeCategories.map(method => (
                     <button
                       key={method}
                       onClick={() => setFormData({...formData, paymentMethod: method})}
-                      className={`p-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 ${
+                      className={`p-4 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 ${
                         formData.paymentMethod === method 
                           ? `bg-${currentTheme.primary} text-white border-${currentTheme.primary}` 
                           : 'bg-white border-gray-200 text-gray-600'
                       }`}
                     >
-                      {method === '現金' && <DollarSign size={16} />}
-                      {method === '信用卡' && <CreditCard size={16} />}
-                      {method === 'AlipayHK' && <Smartphone size={16} />}
-                      {method === 'PayMe' && <Gift size={16} />}
+                      {method === '現金' && <DollarSign size={18} />}
+                      {method === '信用卡' && <CreditCard size={18} />}
+                      {method === 'AlipayHK' && <Smartphone size={18} />}
+                      {method === 'PayMe' && <Gift size={18} />}
                       {method}
                     </button>
                   ))}
@@ -771,15 +806,15 @@ const App = () => {
 
             {/* 備註 */}
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">{t.note}</label>
-              <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200">
-                <MessageSquare size={16} className="text-gray-400"/>
+              <label className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 block">{t.note}</label>
+              <div className="flex items-center gap-2 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <MessageSquare size={18} className="text-gray-400"/>
                 <input 
                   type="text" 
                   value={formData.note}
                   onChange={(e) => setFormData({...formData, note: e.target.value})}
                   placeholder={t.notePlaceholder}
-                  className="bg-transparent text-sm outline-none w-full"
+                  className="bg-transparent text-base outline-none w-full"
                 />
               </div>
             </div>
@@ -792,13 +827,13 @@ const App = () => {
                 setShowInputPage(false);
                 setShowCalculator(false);
               }}
-              className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold"
+              className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold text-base"
             >
               {t.cancel}
             </button>
             <button
               onClick={handleSave}
-              className={`flex-1 bg-${currentTheme.primary} text-white py-4 rounded-xl font-bold`}
+              className={`flex-1 bg-${currentTheme.primary} text-white py-4 rounded-xl font-bold text-base`}
             >
               {t.save}
             </button>
@@ -815,49 +850,4 @@ const App = () => {
             setShowSettingsPage(false);
             setShowDetailPage(null);
           }} 
-          className={`flex flex-col items-center w-1/3 ${activeTab === 'home' && !showInputPage ? `text-${currentTheme.primary} font-black` : 'text-gray-300'}`}
-        >
-          <Download size={28}/>
-          <span className="text-[9px] mt-1 uppercase font-bold">{t.transactions}</span>
-        </button>
-        <div className="relative -top-12 w-1/3 flex justify-center">
-          <button 
-            onClick={() => { 
-              setInputType('expense'); 
-              setShowInputPage(true);
-              setShowCalculator(false);
-              setFormData({
-                ...formData,
-                amount: '',
-                category: settings.expenseCategories[0],
-                paymentMethod: ''
-              });
-            }} 
-            className={`bg-[#B08D57] w-20 h-20 rounded-full flex items-center justify-center text-white shadow-2xl border-[8px] border-[#F8F9FB] active:scale-90 transition-all`}
-          >
-            <Plus size={40} />
-          </button>
-        </div>
-        <button 
-          onClick={() => { 
-            setInputType('income'); 
-            setShowInputPage(true);
-            setShowCalculator(false);
-            setFormData({
-              ...formData,
-              amount: '',
-              category: settings.incomeCategories[0],
-              paymentMethod: settings.incomeCategories[0]
-            });
-          }} 
-          className={`flex flex-col items-center w-1/3 ${showInputPage && inputType === 'income' ? `text-${currentTheme.primary} font-black` : 'text-gray-300'}`}
-        >
-          <Wallet size={28}/>
-          <span className="text-[9px] mt-1 uppercase font-bold">{t.addIncome}</span>
-        </button>
-      </nav>
-    </div>
-  );
-};
-
-export default App;
+          className={`flex flex-col items-center w-1/3 ${activeTab === 'home' && !show
